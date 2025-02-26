@@ -1,0 +1,15 @@
+[package]
+name = "pwgen2"
+version = "0.1.0"
+edition = "2024"
+authors = ["Nicolas Embriz <nbari@tequila.io>"]
+description = "password generator"
+documentation = "https://docs.rs/nbari/latest/pgwen2/"
+homepage = "https://docs.io/pgwen2"
+repository = "https://github.com/nbari/pwgen2/"
+readme = "README.md"
+keywords = ["password", "generator", "passgen", "security"]
+categories = ["command-line-utilities", "command-line-interface"]
+license = "BSD-3-Clause"
+
+[dependencies]
