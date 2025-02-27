@@ -359,7 +359,7 @@ dependencies = [
 
 [[package]]
 name = "pwgen2"
-version = "0.2.3"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "clap",
