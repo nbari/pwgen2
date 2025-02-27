@@ -1,6 +1,6 @@
 [package]
 name = "pwgen2"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 authors = ["Nicolas Embriz <nbari@tequila.io>"]
 description = "password generator"
@@ -17,6 +17,7 @@ anyhow = "1"
 clap = "4.5"
 rand = "0.9"
 openssl = { version = "0.10", optional = true, features = ["vendored"] }
+tokio = { version = "1.43.0", features = ["full"] }
 
 [package.metadata.generate-rpm]
 assets = [

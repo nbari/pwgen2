@@ -26,7 +26,7 @@ pub fn new() -> Command {
         .arg(
             Arg::new("num_pw")
                 .help("Number of passwords to generate")
-                .value_parser(clap::value_parser!(u8).range(1..))
+                .value_parser(clap::value_parser!(usize))
                 .default_value("1")
                 .value_name("NUMBER"),
         )
