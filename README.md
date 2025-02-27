@@ -4,5 +4,19 @@
 # pwgen2
 
 
-
 password generator
+
+Default length is 18 characters, but can be changed with the first argument.
+
+```bash
+pwgen2 24
+```
+
+Password is generated using the following characters:
+
+```
+lowercase: "abcdefghijklmnopqrstuvwxyz",
+uppercase: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+digits: "0123456789",
+symbols: "!@#$%&.-_*",
+```

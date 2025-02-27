@@ -68,9 +68,9 @@ jobs:
       - name: Generate RPM
         if: matrix.build == 'linux'
         run: |
-          ls -alR target/${{ matrix.target }}/release/pgwen2
-          cp target/${{ matrix.target }}/release/pgwen2 ./target/release/pgwen2
-          strip -s ./target/release/pgwen2
+          ls -alR target/${{ matrix.target }}/release/pwgen2
+          cp target/${{ matrix.target }}/release/pwgen2 ./target/release/pwgen2
+          strip -s ./target/release/pwgen2
           cargo generate-rpm
           ls -alR target/generate-rpm  # Check where the RPM is generated
           RPM_PATH=$(find target/generate-rpm/ -name "*.rpm" -print -quit)
@@ -84,7 +84,7 @@ jobs:
       - name: Build archive
         shell: bash
         run: |
-          binary_name="pgwen2"
+          binary_name="pwgen2"
 
           dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
           mkdir "$dirname"
