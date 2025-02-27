@@ -13,3 +13,11 @@ categories = ["command-line-utilities", "command-line-interface"]
 license = "BSD-3-Clause"
 
 [dependencies]
+anyhow = "1.0.96"
+clap = "4.5"
+rand = "0.9.0"
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/pwgen2", dest = "/usr/bin/pwgen2", mode = "0755" },
+]
