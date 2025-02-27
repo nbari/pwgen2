@@ -1,5 +1,5 @@
-use crate::pwgen::{AMBIGUOUS_CHARS, DEFAULT_CHARSETS, config::PasswordConfig};
-use rand::{Rng, rng, seq::SliceRandom};
+use crate::pwgen::{config::PasswordConfig, AMBIGUOUS_CHARS, DEFAULT_CHARSETS};
+use rand::{rng, seq::SliceRandom, Rng};
 use std::collections::HashSet;
 
 /// Generates a password based on the given configuration
