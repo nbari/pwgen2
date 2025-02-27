@@ -8,15 +8,7 @@ pub fn handle(action: Action) -> Result<()> {
         num_pw: _,
     } = action;
 
-    let config = PasswordConfig {
-        length: pw_length,
-        include_lowercase: true,
-        include_uppercase: true,
-        include_digits: true,
-        include_symbols: true,
-        avoid_ambiguous: true,
-        require_from_each_set: true,
-    };
+    let config = PasswordConfig::new(pw_length)?;
 
     match config.validate() {
         Ok(()) => {

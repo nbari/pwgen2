@@ -5,6 +5,7 @@ pub enum PasswordConfigError {
     NoCharacterSetsEnabled,
     LengthTooShortForSets { length: usize, sets_count: usize },
     NotEnoughAvailableCharacters { length: usize, available: usize },
+    PinLengthTooShort,
 }
 
 impl std::fmt::Display for PasswordConfigError {
@@ -28,6 +29,7 @@ impl std::fmt::Display for PasswordConfigError {
                     length, available
                 )
             }
+            Self::PinLengthTooShort => write!(f, "PIN length must be at least 4 characters."),
         }
     }
 }
@@ -49,14 +51,11 @@ pub struct PasswordConfig {
     /// Include numeric digits (0-9)
     pub include_digits: bool,
 
-    /// Include special symbols (!@#$%^&*()_-+=<>?/)
+    /// Include special symbols
     pub include_symbols: bool,
 
-    /// Avoid ambiguous characters (1, l, I, 0, O, etc.)
+    /// Avoid ambiguous characters (0O1Il5S)
     pub avoid_ambiguous: bool,
-
-    /// Require at least one character from each included set
-    pub require_from_each_set: bool,
 }
 
 impl Default for PasswordConfig {
@@ -73,7 +72,6 @@ impl Default for PasswordConfig {
             include_digits: true,
             include_symbols: true,
             avoid_ambiguous: true,
-            require_from_each_set: true,
         }
     }
 }
@@ -81,50 +79,31 @@ impl Default for PasswordConfig {
 impl PasswordConfig {
     /// Creates a new password configuration with the specified length
     /// and default settings for other options
-    pub fn new(length: usize) -> Self {
-        Self {
+    pub fn new(length: usize) -> Result<Self, PasswordConfigError> {
+        if length == 0 {
+            return Err(PasswordConfigError::ZeroLength);
+        }
+
+        Ok(Self {
             length,
             ..Self::default()
-        }
-    }
-
-    /// Creates a new password configuration for a strong password
-    pub const fn strong(length: usize) -> Self {
-        Self {
-            length,
-            include_lowercase: true,
-            include_uppercase: true,
-            include_digits: true,
-            include_symbols: true,
-            avoid_ambiguous: false,
-            require_from_each_set: true,
-        }
+        })
     }
 
     /// Creates a new password configuration for a PIN
-    pub const fn pin(length: usize) -> Self {
-        Self {
+    pub const fn pin(length: usize) -> Result<Self, PasswordConfigError> {
+        if length < 4 {
+            return Err(PasswordConfigError::PinLengthTooShort);
+        }
+
+        Ok(Self {
             length,
             include_lowercase: false,
             include_uppercase: false,
             include_digits: true,
             include_symbols: false,
             avoid_ambiguous: false,
-            require_from_each_set: false,
-        }
-    }
-
-    /// Creates a new password configuration for a readable password
-    pub const fn readable(length: usize) -> Self {
-        Self {
-            length,
-            include_lowercase: true,
-            include_uppercase: true,
-            include_digits: true,
-            include_symbols: false,
-            avoid_ambiguous: true,
-            require_from_each_set: true,
-        }
+        })
     }
 
     /// Builder method to set whether to include lowercase letters
@@ -157,30 +136,6 @@ impl PasswordConfig {
         self
     }
 
-    /// Builder method to set whether to require characters from each included set
-    pub const fn with_require_from_each_set(mut self, require: bool) -> Self {
-        self.require_from_each_set = require;
-        self
-    }
-
-    /// Returns the number of available characters based on configuration
-    const fn get_available_characters_count(&self) -> usize {
-        let lowercase = if self.include_lowercase { 26 } else { 0 };
-        let uppercase = if self.include_uppercase { 26 } else { 0 };
-        let digits = if self.include_digits { 10 } else { 0 };
-        let symbols = if self.include_symbols { 16 } else { 0 }; // Adjust based on your symbol set
-
-        let mut total_chars: usize = lowercase + uppercase + digits + symbols;
-
-        // If avoiding ambiguous characters, remove them from the count
-        if self.avoid_ambiguous {
-            let ambiguous_count = 8; // Approximate count of '1', 'l', 'I', '0', 'O', etc.
-            total_chars = total_chars.saturating_sub(ambiguous_count);
-        }
-
-        total_chars
-    }
-
     /// Validates the configuration
     pub const fn validate(&self) -> Result<(), PasswordConfigError> {
         if self.length == 0 {
@@ -196,21 +151,11 @@ impl PasswordConfig {
             return Err(PasswordConfigError::NoCharacterSetsEnabled);
         }
 
-        if self.require_from_each_set && self.length < sets_count {
+        if self.length < sets_count {
             return Err(PasswordConfigError::LengthTooShortForSets {
                 length: self.length,
                 sets_count,
             });
-        }
-
-        if self.avoid_ambiguous {
-            let available_chars = self.get_available_characters_count();
-            if available_chars < self.length {
-                return Err(PasswordConfigError::NotEnoughAvailableCharacters {
-                    length: self.length,
-                    available: available_chars,
-                });
-            }
         }
 
         Ok(())

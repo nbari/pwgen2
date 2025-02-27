@@ -1,111 +1,39 @@
-use crate::pwgen::config::PasswordConfig;
-use rand::{Rng, rng};
-
-/// Character sets for password generation
-pub struct CharacterSets {
-    /// Lowercase letters: a-z
-    pub lowercase: &'static str,
-    /// Uppercase letters: A-Z
-    pub uppercase: &'static str,
-    /// Numeric digits: 0-9
-    pub digits: &'static str,
-    /// Special characters: !@#$%^&*()_-+=<>?/{}[]~:;.
-    pub symbols: &'static str,
-}
-
-/// Default character sets for password generation
-pub const DEFAULT_CHARSETS: CharacterSets = CharacterSets {
-    lowercase: "abcdefghijklmnopqrstuvwxyz",
-    uppercase: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    digits: "0123456789",
-    symbols: "!@#$%^&*()_-+=<>?/{}[]~:;.",
-};
-
-/// Ambiguous characters to be avoided if `avoid_ambiguous` is enabled
-pub const AMBIGUOUS_CHARS: &str = "l1IoO0";
+use crate::pwgen::{AMBIGUOUS_CHARS, DEFAULT_CHARSETS, config::PasswordConfig};
+use rand::{Rng, rng, seq::SliceRandom};
+use std::collections::HashSet;
 
 /// Generates a password based on the given configuration
 pub fn generate_password(config: &PasswordConfig) -> String {
+    let mut rng = rng();
     let mut charset = String::new();
-
-    // Build character set based on configuration
-    if config.include_lowercase {
-        charset.push_str(DEFAULT_CHARSETS.lowercase);
-    }
-
-    if config.include_uppercase {
-        charset.push_str(DEFAULT_CHARSETS.uppercase);
-    }
-
-    if config.include_digits {
-        charset.push_str(DEFAULT_CHARSETS.digits);
-    }
-
-    if config.include_symbols {
-        charset.push_str(DEFAULT_CHARSETS.symbols);
-    }
-
-    // Remove ambiguous characters if `avoid_ambiguous` is enabled
-    let filtered_charset: String = if config.avoid_ambiguous {
-        charset
-            .chars()
-            .filter(|c| !AMBIGUOUS_CHARS.contains(*c))
-            .collect()
-    } else {
-        charset
-    };
-
-    // Default to full character set if none specified
-    let final_charset = if filtered_charset.is_empty() {
-        DEFAULT_CHARSETS.lowercase.to_owned()
-            + DEFAULT_CHARSETS.uppercase
-            + DEFAULT_CHARSETS.digits
-            + DEFAULT_CHARSETS.symbols
-    } else {
-        filtered_charset
-    };
-
-    let charset_bytes = final_charset.as_bytes();
-    let mut rng = rng();
-
-    // Generate password ensuring at least one character from each set if required
-    if config.require_from_each_set {
-        return generate_with_requirements(config, &final_charset);
-    }
-
-    // Standard password generation without requirements
-    (0..config.length)
-        .map(|_| {
-            let idx = rng.random_range(0..charset_bytes.len());
-            charset_bytes[idx] as char
-        })
-        .collect()
-}
-
-/// Generates a password ensuring at least one character from each required set
-fn generate_with_requirements(config: &PasswordConfig, charset: &str) -> String {
-    let mut rng = rng();
     let mut password = Vec::with_capacity(config.length);
 
-    // Filtered character sets
     let filtered_lowercase: String = DEFAULT_CHARSETS
         .lowercase
         .chars()
         .filter(|c| !config.avoid_ambiguous || !AMBIGUOUS_CHARS.contains(*c))
         .collect();
+
     let filtered_uppercase: String = DEFAULT_CHARSETS
         .uppercase
         .chars()
         .filter(|c| !config.avoid_ambiguous || !AMBIGUOUS_CHARS.contains(*c))
         .collect();
+
     let filtered_digits: String = DEFAULT_CHARSETS
         .digits
         .chars()
         .filter(|c| !config.avoid_ambiguous || !AMBIGUOUS_CHARS.contains(*c))
         .collect();
-    let filtered_symbols: String = DEFAULT_CHARSETS.symbols.to_string();
 
-    // Add at least one character from each required set
+    let filtered_symbols: String = if config.include_symbols {
+        DEFAULT_CHARSETS.symbols.to_string()
+    } else {
+        String::new()
+    };
+
+    charset.push_str(&filtered_symbols);
+
     if config.include_lowercase && !filtered_lowercase.is_empty() {
         password.push(
             filtered_lowercase
@@ -113,7 +41,9 @@ fn generate_with_requirements(config: &PasswordConfig, charset: &str) -> String 
                 .nth(rng.random_range(0..filtered_lowercase.len()))
                 .unwrap(),
         );
+        charset.push_str(&filtered_lowercase);
     }
+
     if config.include_uppercase && !filtered_uppercase.is_empty() {
         password.push(
             filtered_uppercase
@@ -121,7 +51,9 @@ fn generate_with_requirements(config: &PasswordConfig, charset: &str) -> String 
                 .nth(rng.random_range(0..filtered_uppercase.len()))
                 .unwrap(),
         );
+        charset.push_str(&filtered_uppercase);
     }
+
     if config.include_digits && !filtered_digits.is_empty() {
         password.push(
             filtered_digits
@@ -129,28 +61,173 @@ fn generate_with_requirements(config: &PasswordConfig, charset: &str) -> String 
                 .nth(rng.random_range(0..filtered_digits.len()))
                 .unwrap(),
         );
-    }
-    if config.include_symbols {
-        password.push(
-            filtered_symbols
-                .chars()
-                .nth(rng.random_range(0..filtered_symbols.len()))
-                .unwrap(),
-        );
+        charset.push_str(&filtered_digits);
     }
 
-    // Fill the rest with random characters
-    let charset_bytes = charset.as_bytes();
+    let charset_chars: Vec<char> = charset.chars().collect();
+    let symbols: HashSet<char> = filtered_symbols.chars().collect();
+
+    let mut symbol_count = 0;
+    if config.include_symbols && !filtered_symbols.is_empty() {
+        let symbol = filtered_symbols
+            .chars()
+            .nth(rng.random_range(0..filtered_symbols.len()))
+            .unwrap();
+        password.push(symbol);
+        symbol_count += 1;
+    }
+
+    // Calculate maximum allowed symbols (1 per 10 characters, rounded up)
+    let max_symbols = if config.include_symbols {
+        (config.length as f32 / 10.0).ceil() as usize
+    } else {
+        0
+    };
+
+    // Prepare symbol tracking
+    let (symbol_charset, non_symbol_charset): (Vec<_>, Vec<_>) =
+        charset_chars.iter().partition(|c| symbols.contains(c));
+
+    // Fill remaining characters with symbol balance
     while password.len() < config.length {
-        let idx = rng.random_range(0..charset_bytes.len());
-        password.push(charset_bytes[idx] as char);
+        let remaining = config.length - password.len();
+        let available_symbol_slots = max_symbols.saturating_sub(symbol_count);
+
+        // Prefer non-symbols if we have more slots than remaining characters
+        let use_symbol = available_symbol_slots > 0
+            && (remaining <= available_symbol_slots || rng.random_bool(0.3));
+
+        let c = if use_symbol && !filtered_symbols.is_empty() {
+            *symbol_charset
+                .get(rng.random_range(0..symbol_charset.len()))
+                .unwrap_or(&'~') // Fallback if empty
+        } else {
+            *non_symbol_charset
+                .get(rng.random_range(0..non_symbol_charset.len()))
+                .unwrap_or(&'a') // Fallback if empty
+        };
+
+        if symbols.contains(&c) {
+            symbol_count += 1;
+        }
+        password.push(c);
     }
 
-    // Shuffle to avoid predictable patterns
-    for i in 0..password.len() {
-        let j = rng.random_range(0..password.len());
-        password.swap(i, j);
+    password.shuffle(&mut rng);
+
+    if symbols.contains(&password[0]) {
+        if let Some(non_symbol_index) = password.iter().position(|c| !symbols.contains(c)) {
+            password.swap(0, non_symbol_index);
+        }
     }
 
     password.into_iter().collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_password() {
+        let config = PasswordConfig::new(16).unwrap();
+        let password = generate_password(&config);
+
+        assert_eq!(password.len(), 16);
+    }
+
+    #[test]
+    fn test_generate_password_with_symbols() {
+        let config = PasswordConfig::new(16)
+            .unwrap()
+            .with_symbols(true)
+            .with_avoid_ambiguous(true);
+        let password = generate_password(&config);
+
+        assert_eq!(password.len(), 16);
+    }
+
+    #[test]
+    fn test_generate_password_with_symbols_and_lowercase() {
+        let config = PasswordConfig::new(16)
+            .unwrap()
+            .with_symbols(true)
+            .with_lowercase(true)
+            .with_avoid_ambiguous(true);
+        let password = generate_password(&config);
+
+        assert_eq!(password.len(), 16);
+    }
+
+    #[test]
+    fn test_generate_password_with_symbols_and_uppercase() {
+        let config = PasswordConfig::new(16)
+            .unwrap()
+            .with_symbols(true)
+            .with_uppercase(true)
+            .with_avoid_ambiguous(true);
+        let password = generate_password(&config);
+
+        assert_eq!(password.len(), 16);
+    }
+
+    #[test]
+    fn test_generate_password_with_symbols_and_digits() {
+        let config = PasswordConfig::new(16)
+            .unwrap()
+            .with_symbols(true)
+            .with_digits(true)
+            .with_avoid_ambiguous(true);
+        let password = generate_password(&config);
+
+        assert_eq!(password.len(), 16);
+    }
+
+    #[test]
+    fn test_generate_password_with_symbols_and_lowercase_and_uppercase() {
+        let config = PasswordConfig::new(16)
+            .unwrap()
+            .with_symbols(true)
+            .with_lowercase(true)
+            .with_uppercase(true)
+            .with_avoid_ambiguous(true);
+        let password = generate_password(&config);
+
+        assert_eq!(password.len(), 16);
+    }
+
+    #[test]
+    fn test_generate_password_with_symbols_and_lowercase_and_digits() {
+        let config = PasswordConfig::new(16)
+            .unwrap()
+            .with_symbols(true)
+            .with_lowercase(true)
+            .with_digits(true)
+            .with_avoid_ambiguous(true);
+        let password = generate_password(&config);
+
+        assert_eq!(password.len(), 16);
+    }
+
+    #[test]
+    fn test_password_does_not_start_with_symbol() {
+        let config = PasswordConfig {
+            length: 64,
+            include_lowercase: true,
+            include_uppercase: true,
+            include_digits: true,
+            include_symbols: true,
+            avoid_ambiguous: false,
+        };
+
+        for _ in 0..1000 {
+            let password = generate_password(&config);
+            let symbols: HashSet<char> = DEFAULT_CHARSETS.symbols.chars().collect();
+            assert!(
+                !symbols.contains(&password.chars().next().unwrap()),
+                "Password started with a symbol: {}",
+                password
+            );
+        }
+    }
 }
