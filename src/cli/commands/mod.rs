@@ -18,19 +18,15 @@ pub fn new() -> Command {
         .styles(styles)
         .arg(
             Arg::new("pw_length")
-                .short('l')
-                .long("length")
                 .help("password length")
                 .default_value("18")
-                .value_parser(clap::value_parser!(usize))
+                .value_parser(clap::value_parser!(u8).range(4..))
                 .value_name("NUMBER"),
         )
         .arg(
             Arg::new("num_pw")
-                .short('n')
-                .long("number")
                 .help("Number of passwords to generate")
-                .value_parser(clap::value_parser!(usize))
+                .value_parser(clap::value_parser!(u8).range(1..))
                 .default_value("1")
                 .value_name("NUMBER"),
         )

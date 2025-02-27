@@ -6,7 +6,7 @@ use std::collections::HashSet;
 pub fn generate_password(config: &PasswordConfig) -> String {
     let mut rng = rng();
     let mut charset = String::new();
-    let mut password = Vec::with_capacity(config.length);
+    let mut password = Vec::with_capacity(config.length.into());
 
     let filtered_lowercase: String = DEFAULT_CHARSETS
         .lowercase
@@ -79,7 +79,7 @@ pub fn generate_password(config: &PasswordConfig) -> String {
 
     // Calculate maximum allowed symbols (1 per 10 characters, rounded up)
     let max_symbols = if config.include_symbols {
-        (config.length as f32 / 10.0).ceil() as usize
+        (config.length as f32 / 10.0).ceil() as u8
     } else {
         0
     };
@@ -89,8 +89,8 @@ pub fn generate_password(config: &PasswordConfig) -> String {
         charset_chars.iter().partition(|c| symbols.contains(c));
 
     // Fill remaining characters with symbol balance
-    while password.len() < config.length {
-        let remaining = config.length - password.len();
+    while password.len() < config.length.into() {
+        let remaining = config.length.saturating_sub(password.len() as u8);
         let available_symbol_slots = max_symbols.saturating_sub(symbol_count);
 
         // Prefer non-symbols if we have more slots than remaining characters

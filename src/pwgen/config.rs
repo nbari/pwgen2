@@ -3,8 +3,8 @@
 pub enum PasswordConfigError {
     ZeroLength,
     NoCharacterSetsEnabled,
-    LengthTooShortForSets { length: usize, sets_count: usize },
-    NotEnoughAvailableCharacters { length: usize, available: usize },
+    LengthTooShortForSets { length: u8, sets_count: u8 },
+    NotEnoughAvailableCharacters { length: u8, available: u8 },
     PinLengthTooShort,
 }
 
@@ -40,7 +40,7 @@ impl std::error::Error for PasswordConfigError {}
 #[derive(Debug, Clone)]
 pub struct PasswordConfig {
     /// Length of the password to generate
-    pub length: usize,
+    pub length: u8,
 
     /// Include lowercase letters (a-z)
     pub include_lowercase: bool,
@@ -79,7 +79,7 @@ impl Default for PasswordConfig {
 impl PasswordConfig {
     /// Creates a new password configuration with the specified length
     /// and default settings for other options
-    pub fn new(length: usize) -> Result<Self, PasswordConfigError> {
+    pub fn new(length: u8) -> Result<Self, PasswordConfigError> {
         if length == 0 {
             return Err(PasswordConfigError::ZeroLength);
         }
@@ -91,7 +91,7 @@ impl PasswordConfig {
     }
 
     /// Creates a new password configuration for a PIN
-    pub const fn pin(length: usize) -> Result<Self, PasswordConfigError> {
+    pub const fn pin(length: u8) -> Result<Self, PasswordConfigError> {
         if length < 4 {
             return Err(PasswordConfigError::PinLengthTooShort);
         }
@@ -142,10 +142,10 @@ impl PasswordConfig {
             return Err(PasswordConfigError::ZeroLength);
         }
 
-        let sets_count = self.include_lowercase as usize
-            + self.include_uppercase as usize
-            + self.include_digits as usize
-            + self.include_symbols as usize;
+        let sets_count = self.include_lowercase as u8
+            + self.include_uppercase as u8
+            + self.include_digits as u8
+            + self.include_symbols as u8;
 
         if sets_count == 0 {
             return Err(PasswordConfigError::NoCharacterSetsEnabled);
