@@ -39,6 +39,9 @@ Arguments:
 Options:
   -p, --pin           Generate a pin
   -a, --alphanumeric  Generate an alphanumeric password
+  -b, --bcrypt        Hash the generated password using Bcrypt
+  -k, --pbkdf2        Hash the generated password using PBKDF2
+  -s, --sha512        Hash the generated password using SHA512
   -h, --help          Print help
   -V, --version       Print version
 ```
@@ -68,3 +71,10 @@ Create 5 passwords with 24 characters:
 ```bash
 pwgen2 24 5
 ```
+
+Create a password and hash it using Bcrypt:
+
+```bash
+pwgen2 -b
+```
+> useful for generating passwords for htpasswd
