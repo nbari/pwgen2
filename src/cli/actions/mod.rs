@@ -7,5 +7,8 @@ pub enum Action {
         num_pw: usize,
         pin: bool,
         alphanumeric: bool,
+        bcrypt: bool,
+        pbkdf2: bool,
+        sha512: bool,
     },
 }

@@ -18,6 +18,9 @@ clap = "4.5"
 rand = "0.9"
 openssl = { version = "0.10", optional = true, features = ["vendored"] }
 tokio = { version = "1.43.0", features = ["full"] }
+bcrypt = "0.17"
+pbkdf2 = { version = "0.12", features = ["password-hash", "simple", "std"] }
+sha-crypt = { version = "0.5", features = ["simple"] }
 
 [dev-dependencies]
 assert_cmd = "2.0"

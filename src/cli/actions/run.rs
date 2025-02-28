@@ -1,5 +1,9 @@
 use crate::cli::actions::Action;
-use crate::pwgen::{config::PasswordConfig, generate_password};
+use crate::pwgen::{
+    config::PasswordConfig,
+    generate_password,
+    hash::{hash_bcrypt, hash_pbkdf2, hash_sha512},
+};
 use anyhow::Result;
 use tokio::task;
 
@@ -9,6 +13,9 @@ pub async fn handle(action: Action) -> Result<()> {
         num_pw,
         pin,
         alphanumeric,
+        bcrypt,
+        pbkdf2,
+        sha512,
     } = action;
 
     let config = if pin {
@@ -28,7 +35,26 @@ pub async fn handle(action: Action) -> Result<()> {
 
                 let handle = task::spawn_blocking(move || {
                     let password = generate_password(&config);
-                    println!("{}", password);
+
+                    // Apply hashing if requested
+                    if bcrypt {
+                        match hash_bcrypt(&password) {
+                            Ok(hashed) => println!("{} {}", password, hashed),
+                            Err(e) => eprintln!("BCrypt hashing error: {}", e),
+                        }
+                    } else if pbkdf2 {
+                        match hash_pbkdf2(&password) {
+                            Ok(hashed) => println!("{} {}", password, hashed),
+                            Err(e) => eprintln!("PBKDF2 hashing error: {}", e),
+                        }
+                    } else if sha512 {
+                        match hash_sha512(&password) {
+                            Ok(hashed) => println!("{} {}", password, hashed),
+                            Err(e) => eprintln!("PBKDF2 hashing error: {}", e),
+                        }
+                    } else {
+                        println!("{}", password);
+                    }
                 });
 
                 handles.push(handle);
@@ -60,6 +86,9 @@ mod tests {
             num_pw: 1,
             pin: false,
             alphanumeric: false,
+            bcrypt: false,
+            pbkdf2: false,
+            sha512: false,
         };
 
         let rs = handle(action).await;
@@ -73,6 +102,9 @@ mod tests {
             num_pw: 1,
             pin: true,
             alphanumeric: false,
+            bcrypt: false,
+            pbkdf2: false,
+            sha512: false,
         };
 
         let rs = handle(action).await;
@@ -86,6 +118,9 @@ mod tests {
             num_pw: 1,
             pin: false,
             alphanumeric: true,
+            bcrypt: false,
+            pbkdf2: false,
+            sha512: false,
         };
 
         let rs = handle(action).await;
@@ -99,6 +134,9 @@ mod tests {
             num_pw: 1,
             pin: false,
             alphanumeric: false,
+            bcrypt: false,
+            pbkdf2: false,
+            sha512: false,
         };
 
         let rs = handle(action).await;

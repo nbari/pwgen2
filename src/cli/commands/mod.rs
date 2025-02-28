@@ -52,9 +52,38 @@ pub fn new() -> Command {
                 .num_args(0)
                 .action(ArgAction::SetTrue),
         )
+        .arg(
+            Arg::new("bcrypt")
+                .short('b')
+                .long("bcrypt")
+                .help("Hash the generated password using Bcrypt")
+                .num_args(0)
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("pbkdf2")
+                .short('k')
+                .long("pbkdf2")
+                .help("Hash the generated password using PBKDF2")
+                .num_args(0)
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("sha512")
+                .short('s')
+                .long("sha512")
+                .help("Hash the generated password using SHA512")
+                .num_args(0)
+                .action(ArgAction::SetTrue),
+        )
         .group(
             ArgGroup::new("password-type")
                 .args(["pin", "alphanumeric"])
+                .required(false),
+        )
+        .group(
+            ArgGroup::new("hash-type")
+                .args(["bcrypt", "pbkdf2", "sha512"])
                 .required(false),
         )
 }
@@ -189,6 +218,15 @@ mod tests {
         assert_eq!(m.get_one::<usize>("number").copied(), Some(1));
         assert!(!m.get_flag("pin"));
         assert!(!m.get_flag("alphanumeric"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_options_only_b_or_k() -> Result<()> {
+        let matches = new().try_get_matches_from(vec!["pwgen2", "-b", "-k", "s"]);
+
+        assert!(matches.is_err());
 
         Ok(())
     }

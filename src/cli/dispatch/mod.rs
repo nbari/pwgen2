@@ -7,6 +7,9 @@ pub fn handler(matches: &clap::ArgMatches) -> Result<Action> {
         num_pw: matches.get_one::<usize>("number").copied().unwrap_or(1),
         pin: matches.get_flag("pin"),
         alphanumeric: matches.get_flag("alphanumeric"),
+        bcrypt: matches.get_flag("bcrypt"),
+        pbkdf2: matches.get_flag("pbkdf2"),
+        sha512: matches.get_flag("sha512"),
     })
 }
 
@@ -35,11 +38,17 @@ mod tests {
                 num_pw,
                 pin,
                 alphanumeric,
+                bcrypt,
+                pbkdf2,
+                sha512,
             } => {
                 assert_eq!(pw_length, 18);
                 assert_eq!(num_pw, 1);
                 assert!(!pin);
                 assert!(!alphanumeric);
+                assert!(!bcrypt);
+                assert!(!pbkdf2);
+                assert!(!sha512);
             }
         }
 
