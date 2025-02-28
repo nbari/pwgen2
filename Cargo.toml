@@ -19,6 +19,10 @@ rand = "0.9"
 openssl = { version = "0.10", optional = true, features = ["vendored"] }
 tokio = { version = "1.43.0", features = ["full"] }
 
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
+
 [package.metadata.generate-rpm]
 assets = [
     { source = "target/release/pwgen2", dest = "/usr/bin/pwgen2", mode = "0755" },
