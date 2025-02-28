@@ -4,9 +4,20 @@ use anyhow::Result;
 use tokio::task;
 
 pub async fn handle(action: Action) -> Result<()> {
-    let Action::Run { pw_length, num_pw } = action;
+    let Action::Run {
+        pw_length,
+        num_pw,
+        pin,
+        alphanumeric,
+    } = action;
 
-    let config = PasswordConfig::new(pw_length)?;
+    let config = if pin {
+        PasswordConfig::pin(pw_length)?
+    } else if alphanumeric {
+        PasswordConfig::alphanumeric(pw_length)?
+    } else {
+        PasswordConfig::new(pw_length)?
+    };
 
     match config.validate() {
         Ok(()) => {

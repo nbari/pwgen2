@@ -106,6 +106,18 @@ impl PasswordConfig {
         })
     }
 
+    /// Creates an alphanumeric password configuration
+    pub const fn alphanumeric(length: u8) -> Result<Self, PasswordConfigError> {
+        Ok(Self {
+            length,
+            include_lowercase: true,
+            include_uppercase: true,
+            include_digits: true,
+            include_symbols: false,
+            avoid_ambiguous: true,
+        })
+    }
+
     /// Builder method to set whether to include lowercase letters
     pub const fn with_lowercase(mut self, include: bool) -> Self {
         self.include_lowercase = include;

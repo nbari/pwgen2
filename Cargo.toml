@@ -1,6 +1,6 @@
 [package]
 name = "pwgen2"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 authors = ["Nicolas Embriz <nbari@tequila.io>"]
 description = "password generator"

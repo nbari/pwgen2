@@ -1,6 +1,6 @@
 use clap::{
     builder::styling::{AnsiColor, Effects, Styles},
-    Arg, ColorChoice, Command,
+    Arg, ArgAction, ArgGroup, ColorChoice, Command,
 };
 use std::env;
 
@@ -17,17 +17,37 @@ pub fn new() -> Command {
         .color(ColorChoice::Auto)
         .styles(styles)
         .arg(
-            Arg::new("pw_length")
+            Arg::new("length")
                 .help("password length")
                 .default_value("18")
-                .value_parser(clap::value_parser!(u8).range(4..))
-                .value_name("NUMBER"),
+                .default_value_if("pin", "true", "4")
+                .value_parser(clap::value_parser!(u8).range(4..)),
         )
         .arg(
-            Arg::new("num_pw")
+            Arg::new("number")
                 .help("Number of passwords to generate")
                 .value_parser(clap::value_parser!(usize))
-                .default_value("1")
-                .value_name("NUMBER"),
+                .default_value("1"),
+        )
+        .arg(
+            Arg::new("pin")
+                .short('p')
+                .long("pin")
+                .help("Generate a pin")
+                .num_args(0)
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("alphanumeric")
+                .short('a')
+                .long("alphanumeric")
+                .help("Generate an alphanumeric password")
+                .num_args(0)
+                .action(ArgAction::SetTrue),
+        )
+        .group(
+            ArgGroup::new("password-type")
+                .args(["pin", "alphanumeric"])
+                .required(false),
         )
 }

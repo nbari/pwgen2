@@ -3,8 +3,10 @@ use anyhow::Result;
 
 pub fn handler(matches: &clap::ArgMatches) -> Result<Action> {
     Ok(Action::Run {
-        pw_length: matches.get_one::<u8>("pw_length").copied().unwrap_or(18),
-        num_pw: matches.get_one::<usize>("num_pw").copied().unwrap_or(1),
+        pw_length: matches.get_one::<u8>("length").copied().unwrap_or(18),
+        num_pw: matches.get_one::<usize>("number").copied().unwrap_or(1),
+        pin: matches.get_flag("pin"),
+        alphanumeric: matches.get_flag("alphanumeric"),
     })
 }
 
@@ -21,16 +23,23 @@ mod tests {
 
         let m = matches.unwrap();
 
-        assert_eq!(m.get_one::<u8>("pw_length").copied(), Some(18));
+        assert_eq!(m.get_one::<u8>("length").copied(), Some(18));
 
-        assert_eq!(m.get_one::<usize>("num_pw").copied(), Some(1));
+        assert_eq!(m.get_one::<usize>("number").copied(), Some(1));
 
         let action = handler(&m)?;
 
         match action {
-            Action::Run { pw_length, num_pw } => {
+            Action::Run {
+                pw_length,
+                num_pw,
+                pin,
+                alphanumeric,
+            } => {
                 assert_eq!(pw_length, 18);
                 assert_eq!(num_pw, 1);
+                assert!(!pin);
+                assert!(!alphanumeric);
             }
         }
 
