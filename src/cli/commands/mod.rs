@@ -26,7 +26,14 @@ pub fn new() -> Command {
         .arg(
             Arg::new("number")
                 .help("Number of passwords to generate")
-                .value_parser(clap::value_parser!(usize))
+                .value_parser(|s: &str| {
+                    let n: usize = s.parse().map_err(|_| "Must be a positive number")?;
+                    if n == 0 {
+                        Err("Number must be greater than 0".to_string())
+                    } else {
+                        Ok(n)
+                    }
+                })
                 .default_value("1"),
         )
         .arg(
@@ -50,4 +57,19 @@ pub fn new() -> Command {
                 .args(["pin", "alphanumeric"])
                 .required(false),
         )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Result;
+
+    #[test]
+    fn test_new() -> Result<()> {
+        let matches = new().try_get_matches_from(vec!["pwgen2"]);
+
+        assert!(matches.is_ok());
+
+        Ok(())
+    }
 }

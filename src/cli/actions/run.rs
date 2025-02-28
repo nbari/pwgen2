@@ -47,3 +47,61 @@ pub async fn handle(action: Action) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::actions::Action;
+
+    #[tokio::test]
+    async fn test_handle() {
+        let action = Action::Run {
+            pw_length: 10,
+            num_pw: 1,
+            pin: false,
+            alphanumeric: false,
+        };
+
+        let rs = handle(action).await;
+        assert!(rs.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_pin() {
+        let action = Action::Run {
+            pw_length: 4,
+            num_pw: 1,
+            pin: true,
+            alphanumeric: false,
+        };
+
+        let rs = handle(action).await;
+        assert!(rs.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_alphanumeric() {
+        let action = Action::Run {
+            pw_length: 4,
+            num_pw: 1,
+            pin: false,
+            alphanumeric: true,
+        };
+
+        let rs = handle(action).await;
+        assert!(rs.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_invalid() {
+        let action = Action::Run {
+            pw_length: 0,
+            num_pw: 1,
+            pin: false,
+            alphanumeric: false,
+        };
+
+        let rs = handle(action).await;
+        assert!(rs.is_err());
+    }
+}
