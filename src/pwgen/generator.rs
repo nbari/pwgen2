@@ -27,7 +27,10 @@ pub fn generate_password(config: &PasswordConfig) -> String {
         .collect();
 
     let filtered_symbols: String = if config.include_symbols {
-        DEFAULT_CHARSETS.symbols.to_string()
+        config.charset.as_ref().map_or_else(
+            || DEFAULT_CHARSETS.symbols.to_string(),
+            |charset| charset.chars().collect(),
+        )
     } else {
         String::new()
     };
@@ -213,6 +216,7 @@ mod tests {
     fn test_password_does_not_start_with_symbol() {
         let config = PasswordConfig {
             length: 64,
+            charset: None,
             include_lowercase: true,
             include_uppercase: true,
             include_digits: true,
@@ -228,6 +232,61 @@ mod tests {
                 "Password started with a symbol: {}",
                 password
             );
+        }
+    }
+
+    #[test]
+    fn test_password_does_not_contain_ambiguous_chars() {
+        let config = PasswordConfig {
+            length: 64,
+            charset: None,
+            include_lowercase: true,
+            include_uppercase: true,
+            include_digits: true,
+            include_symbols: true,
+            avoid_ambiguous: true,
+        };
+
+        for _ in 0..1000 {
+            let password = generate_password(&config);
+            assert!(
+                !password.chars().any(|c| AMBIGUOUS_CHARS.contains(c)),
+                "Password contained ambiguous characters: {}",
+                password
+            );
+        }
+    }
+
+    #[test]
+    fn test_password_contains_symbols() {
+        let config = PasswordConfig {
+            length: 64,
+            charset: None,
+            include_lowercase: true,
+            include_uppercase: true,
+            include_digits: true,
+            include_symbols: true,
+            avoid_ambiguous: false,
+        };
+
+        for _ in 0..1000 {
+            let password = generate_password(&config);
+            let symbols: HashSet<char> = DEFAULT_CHARSETS.symbols.chars().collect();
+            assert!(
+                password.chars().any(|c| symbols.contains(&c)),
+                "Password did not contain symbols: {}",
+                password
+            );
+        }
+    }
+
+    #[test]
+    fn test_password_containing_custom_charset() {
+        let config = PasswordConfig::custom(18, "~".to_string()).unwrap();
+        println!("{:?}", config);
+        for _ in 0..1000 {
+            let password = generate_password(&config);
+            assert!(password.chars().any(|c| c == '~'));
         }
     }
 }

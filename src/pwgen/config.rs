@@ -42,6 +42,9 @@ pub struct PasswordConfig {
     /// Length of the password to generate
     pub length: u8,
 
+    /// character sets for password generation
+    pub charset: Option<String>,
+
     /// Include lowercase letters (a-z)
     pub include_lowercase: bool,
 
@@ -67,6 +70,7 @@ impl Default for PasswordConfig {
     fn default() -> Self {
         Self {
             length: 18,
+            charset: None,
             include_lowercase: true,
             include_uppercase: true,
             include_digits: true,
@@ -98,6 +102,7 @@ impl PasswordConfig {
 
         Ok(Self {
             length,
+            charset: None,
             include_lowercase: false,
             include_uppercase: false,
             include_digits: true,
@@ -110,11 +115,20 @@ impl PasswordConfig {
     pub const fn alphanumeric(length: u8) -> Result<Self, PasswordConfigError> {
         Ok(Self {
             length,
+            charset: None,
             include_lowercase: true,
             include_uppercase: true,
             include_digits: true,
             include_symbols: false,
             avoid_ambiguous: true,
+        })
+    }
+
+    pub fn custom(length: u8, charset: String) -> Result<Self, PasswordConfigError> {
+        Ok(Self {
+            length,
+            charset: Some(charset),
+            ..Self::default()
         })
     }
 

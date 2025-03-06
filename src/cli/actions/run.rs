@@ -16,12 +16,15 @@ pub async fn handle(action: Action) -> Result<()> {
         bcrypt,
         pbkdf2,
         sha512,
+        charset,
     } = action;
 
     let config = if pin {
         PasswordConfig::pin(pw_length)?
     } else if alphanumeric {
         PasswordConfig::alphanumeric(pw_length)?
+    } else if let Some(charset) = charset {
+        PasswordConfig::custom(pw_length, charset)?
     } else {
         PasswordConfig::new(pw_length)?
     };
@@ -89,6 +92,7 @@ mod tests {
             bcrypt: false,
             pbkdf2: false,
             sha512: false,
+            charset: None,
         };
 
         let rs = handle(action).await;
@@ -105,6 +109,7 @@ mod tests {
             bcrypt: false,
             pbkdf2: false,
             sha512: false,
+            charset: None,
         };
 
         let rs = handle(action).await;
@@ -121,6 +126,7 @@ mod tests {
             bcrypt: false,
             pbkdf2: false,
             sha512: false,
+            charset: None,
         };
 
         let rs = handle(action).await;
@@ -137,6 +143,7 @@ mod tests {
             bcrypt: false,
             pbkdf2: false,
             sha512: false,
+            charset: None,
         };
 
         let rs = handle(action).await;

@@ -10,6 +10,7 @@ pub fn handler(matches: &clap::ArgMatches) -> Result<Action> {
         bcrypt: matches.get_flag("bcrypt"),
         pbkdf2: matches.get_flag("pbkdf2"),
         sha512: matches.get_flag("sha512"),
+        charset: matches.get_one::<String>("charset").map(|s| s.to_string()),
     })
 }
 
@@ -41,6 +42,7 @@ mod tests {
                 bcrypt,
                 pbkdf2,
                 sha512,
+                charset,
             } => {
                 assert_eq!(pw_length, 18);
                 assert_eq!(num_pw, 1);
@@ -49,6 +51,7 @@ mod tests {
                 assert!(!bcrypt);
                 assert!(!pbkdf2);
                 assert!(!sha512);
+                assert!(charset.is_none());
             }
         }
 

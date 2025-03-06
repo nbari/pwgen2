@@ -76,9 +76,17 @@ pub fn new() -> Command {
                 .num_args(0)
                 .action(ArgAction::SetTrue),
         )
+        .arg(
+            Arg::new("charset")
+                .short('c')
+                .long("charset")
+                .help("Symbols to use for password generation")
+                .value_name("symbols")
+                .required(false),
+        )
         .group(
             ArgGroup::new("password-type")
-                .args(["pin", "alphanumeric"])
+                .args(["pin", "alphanumeric", "charset"])
                 .required(false),
         )
         .group(
@@ -145,6 +153,7 @@ mod tests {
         assert_eq!(m.get_one::<usize>("number").copied(), Some(1));
         assert!(!m.get_flag("pin"));
         assert!(!m.get_flag("alphanumeric"));
+        assert_eq!(m.get_one::<String>("charset").as_deref(), None);
 
         Ok(())
     }
@@ -191,6 +200,24 @@ mod tests {
     }
 
     #[test]
+    fn test_options_only_pin_or_charset() -> Result<()> {
+        let matches = new().try_get_matches_from(vec!["pwgen2", "-a", "-c"]);
+
+        assert!(matches.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_options_only_pin_or_alphanumeric_or_charset() -> Result<()> {
+        let matches = new().try_get_matches_from(vec!["pwgen2", "-a", "-p", "-c"]);
+
+        assert!(matches.is_err());
+
+        Ok(())
+    }
+
+    #[test]
     fn test_number_of_passwords() -> Result<()> {
         let matches = new().try_get_matches_from(vec!["pwgen2", "18", "5"]);
 
@@ -227,6 +254,26 @@ mod tests {
         let matches = new().try_get_matches_from(vec!["pwgen2", "-b", "-k", "s"]);
 
         assert!(matches.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_charset() -> Result<()> {
+        let matches = new().try_get_matches_from(vec!["pwgen2", "-c", "~"]);
+
+        assert!(matches.is_ok());
+
+        let m = matches?;
+
+        assert_eq!(m.get_one::<u8>("length").copied(), Some(18));
+        assert_eq!(m.get_one::<usize>("number").copied(), Some(1));
+        assert!(!m.get_flag("pin"));
+        assert!(!m.get_flag("alphanumeric"));
+        assert_eq!(
+            m.get_one::<String>("charset").map(|s| s.to_string()),
+            Some(String::from("~"))
+        );
 
         Ok(())
     }
