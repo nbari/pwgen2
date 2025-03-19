@@ -5,6 +5,7 @@ use crate::pwgen::{
     hash::{hash_bcrypt, hash_pbkdf2, hash_sha512},
 };
 use anyhow::Result;
+use serde_json::json;
 use tokio::task;
 
 pub async fn handle(action: Action) -> Result<()> {
@@ -17,6 +18,7 @@ pub async fn handle(action: Action) -> Result<()> {
         pbkdf2,
         sha512,
         charset,
+        json, // Check for JSON flag
     } = action;
 
     let config = if pin {
@@ -32,40 +34,56 @@ pub async fn handle(action: Action) -> Result<()> {
     match config.validate() {
         Ok(()) => {
             let mut handles = Vec::new();
+            let mut results = Vec::new(); // Collect passwords for JSON output
 
             for _ in 0..num_pw {
                 let config = config.clone();
 
-                let handle = task::spawn_blocking(move || {
+                let handle = task::spawn_blocking(move || -> Result<(String, Option<String>)> {
                     let password = generate_password(&config);
 
                     // Apply hashing if requested
-                    if bcrypt {
-                        match hash_bcrypt(&password) {
-                            Ok(hashed) => println!("{} {}", password, hashed),
-                            Err(e) => eprintln!("BCrypt hashing error: {}", e),
-                        }
+                    let hashed = if bcrypt {
+                        hash_bcrypt(&password).ok()
                     } else if pbkdf2 {
-                        match hash_pbkdf2(&password) {
-                            Ok(hashed) => println!("{} {}", password, hashed),
-                            Err(e) => eprintln!("PBKDF2 hashing error: {}", e),
-                        }
+                        hash_pbkdf2(&password).ok()
                     } else if sha512 {
-                        match hash_sha512(&password) {
-                            Ok(hashed) => println!("{} {}", password, hashed),
-                            Err(e) => eprintln!("PBKDF2 hashing error: {}", e),
-                        }
+                        hash_sha512(&password).ok()
                     } else {
-                        println!("{}", password);
-                    }
+                        None
+                    };
+
+                    Ok((password, hashed))
                 });
 
                 handles.push(handle);
             }
 
-            // Await all spawned tasks
             for handle in handles {
-                handle.await.unwrap(); // Handle errors properly in production
+                match handle.await {
+                    Ok(Ok((password, hashed))) => {
+                        if json {
+                            results.push(json!({
+                                "password": password,
+                                "hash": hashed
+                            }));
+                        } else if let Some(hash) = hashed {
+                            println!("{} {}", password, hash);
+                        } else {
+                            println!("{}", password);
+                        }
+                    }
+                    Ok(Err(e)) => {
+                        eprintln!("Error generating password: {}", e);
+                    }
+                    Err(e) => {
+                        eprintln!("Task execution error: {}", e);
+                    }
+                }
+            }
+
+            if json {
+                println!("{}", serde_json::to_string_pretty(&results)?);
             }
         }
         Err(e) => {
@@ -93,6 +111,7 @@ mod tests {
             pbkdf2: false,
             sha512: false,
             charset: None,
+            json: false,
         };
 
         let rs = handle(action).await;
@@ -110,6 +129,7 @@ mod tests {
             pbkdf2: false,
             sha512: false,
             charset: None,
+            json: false,
         };
 
         let rs = handle(action).await;
@@ -127,6 +147,7 @@ mod tests {
             pbkdf2: false,
             sha512: false,
             charset: None,
+            json: false,
         };
 
         let rs = handle(action).await;
@@ -144,6 +165,7 @@ mod tests {
             pbkdf2: false,
             sha512: false,
             charset: None,
+            json: false,
         };
 
         let rs = handle(action).await;

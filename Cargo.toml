@@ -1,6 +1,6 @@
 [package]
 name = "pwgen2"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 authors = ["Nicolas Embriz <nbari@tequila.io>"]
 description = "password generator"
@@ -17,10 +17,11 @@ anyhow = "1"
 clap = "4.5"
 rand = "0.9"
 openssl = { version = "0.10", optional = true, features = ["vendored"] }
-tokio = { version = "1.43.0", features = ["full"] }
+tokio = { version = "1.44", features = ["full"] }
 bcrypt = "0.17"
 pbkdf2 = { version = "0.12", features = ["password-hash", "simple", "std"] }
 sha-crypt = { version = "0.5", features = ["simple"] }
+serde_json = "1.0"
 
 [dev-dependencies]
 assert_cmd = "2.0"

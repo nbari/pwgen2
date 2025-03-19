@@ -11,6 +11,7 @@ pub fn handler(matches: &clap::ArgMatches) -> Result<Action> {
         pbkdf2: matches.get_flag("pbkdf2"),
         sha512: matches.get_flag("sha512"),
         charset: matches.get_one::<String>("charset").map(|s| s.to_string()),
+        json: matches.get_flag("json"),
     })
 }
 
@@ -43,6 +44,7 @@ mod tests {
                 pbkdf2,
                 sha512,
                 charset,
+                json,
             } => {
                 assert_eq!(pw_length, 18);
                 assert_eq!(num_pw, 1);
@@ -52,6 +54,7 @@ mod tests {
                 assert!(!pbkdf2);
                 assert!(!sha512);
                 assert!(charset.is_none());
+                assert!(!json);
             }
         }
 

@@ -11,5 +11,6 @@ pub enum Action {
         pbkdf2: bool,
         sha512: bool,
         charset: Option<String>,
+        json: bool,
     },
 }

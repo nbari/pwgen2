@@ -84,6 +84,14 @@ pub fn new() -> Command {
                 .value_name("symbols")
                 .required(false),
         )
+        .arg(
+            Arg::new("json")
+                .short('j')
+                .long("json")
+                .help("Output as JSON")
+                .num_args(0)
+                .action(ArgAction::SetTrue),
+        )
         .group(
             ArgGroup::new("password-type")
                 .args(["pin", "alphanumeric", "charset"])
