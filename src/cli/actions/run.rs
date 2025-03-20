@@ -4,7 +4,8 @@ use crate::pwgen::{
     generate_password,
     hash::{hash_bcrypt, hash_pbkdf2, hash_sha512},
 };
-use anyhow::Result;
+use anyhow::{Error, Result};
+use crossbeam::channel;
 use serde_json::json;
 use tokio::task;
 
@@ -33,57 +34,78 @@ pub async fn handle(action: Action) -> Result<()> {
 
     match config.validate() {
         Ok(()) => {
-            let mut handles = Vec::new();
-            let mut results = Vec::new(); // Collect passwords for JSON output
+            //
+            if json {
+                print!("[");
+                if num_pw == 0 {
+                    print!("]");
+                }
+            }
+
+            // Create a crossbeam channel
+            let (tx, rx) = channel::bounded::<Result<(String, Option<String>), Error>>(32);
 
             for _ in 0..num_pw {
                 let config = config.clone();
+                let tx = tx.clone();
 
-                let handle = task::spawn_blocking(move || -> Result<(String, Option<String>)> {
-                    let password = generate_password(&config);
+                task::spawn_blocking(move || {
+                    let result = {
+                        let password = generate_password(&config);
 
-                    // Apply hashing if requested
-                    let hashed = if bcrypt {
-                        hash_bcrypt(&password).ok()
-                    } else if pbkdf2 {
-                        hash_pbkdf2(&password).ok()
-                    } else if sha512 {
-                        hash_sha512(&password).ok()
-                    } else {
-                        None
+                        // Apply hashing if requested
+                        let hashed = if bcrypt {
+                            hash_bcrypt(&password).ok()
+                        } else if pbkdf2 {
+                            hash_pbkdf2(&password).ok()
+                        } else if sha512 {
+                            hash_sha512(&password).ok()
+                        } else {
+                            None
+                        };
+
+                        Ok((password, hashed))
                     };
 
-                    Ok((password, hashed))
+                    let _ = tx.send(result);
                 });
-
-                handles.push(handle);
             }
 
-            for handle in handles {
-                match handle.await {
-                    Ok(Ok((password, hashed))) => {
+            // Drop the sender to signal that no more messages will be sent
+            drop(tx);
+
+            // Track number of items processed for JSON formatting
+            let mut processed = 0;
+
+            // Process results as they arrive
+            while let Ok(result) = rx.recv() {
+                match result {
+                    Ok((password, hashed)) => {
                         if json {
-                            results.push(json!({
+                            if processed > 0 {
+                                print!(",");
+                            }
+                            let json_output = json!({
                                 "password": password,
                                 "hash": hashed
-                            }));
+                            });
+                            print!("{}", json_output);
+                            processed += 1;
+
+                            // If this is the last item, print the closing bracket
+                            if processed == num_pw {
+                                println!("]");
+                            }
                         } else if let Some(hash) = hashed {
                             println!("{} {}", password, hash);
                         } else {
                             println!("{}", password);
                         }
                     }
-                    Ok(Err(e)) => {
+                    Err(e) => {
                         eprintln!("Error generating password: {}", e);
                     }
-                    Err(e) => {
-                        eprintln!("Task execution error: {}", e);
-                    }
                 }
-            }
-
-            if json {
-                println!("{}", serde_json::to_string_pretty(&results)?);
             }
         }
         Err(e) => {
