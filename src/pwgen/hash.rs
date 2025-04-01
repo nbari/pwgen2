@@ -42,3 +42,29 @@ pub fn hash_sha512(password: &str) -> Result<String> {
 pub fn verify_sha512(password: &str, hashed: &str) -> Result<bool> {
     Ok(sha512_check(password, hashed).is_ok())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hash_bcrypt() {
+        let password = "password";
+        let hashed = hash_bcrypt(password).unwrap();
+        assert!(verify_bcrypt(password, &hashed).unwrap());
+    }
+
+    #[test]
+    fn test_hash_pbkdf2() {
+        let password = "password";
+        let hashed = hash_pbkdf2(password).unwrap();
+        assert!(verify_pbkdf2(password, &hashed).unwrap());
+    }
+
+    #[test]
+    fn test_hash_sha512() {
+        let password = "password";
+        let hashed = hash_sha512(password).unwrap();
+        assert!(verify_sha512(password, &hashed).unwrap());
+    }
+}
