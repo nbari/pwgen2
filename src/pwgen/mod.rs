@@ -1,9 +1,11 @@
 pub mod config;
 pub mod generator;
 pub mod hash;
+pub mod mnemonic;
 
 pub use config::PasswordConfig;
 pub use generator::generate_password;
+pub use mnemonic::generate_mnemonic;
 
 /// Character sets for password generation
 pub struct CharacterSets {

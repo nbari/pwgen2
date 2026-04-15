@@ -1,13 +1,17 @@
-use anyhow::Result;
 use pwgen2::cli::{actions, actions::Action, start};
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    let action = start()?;
+async fn main() {
+    let action = start();
 
-    match action {
-        Action::Run { .. } => actions::run::handle(action).await?,
+    let result = match action {
+        Action::GeneratePassword { .. } | Action::GenerateMnemonic { .. } => {
+            actions::run::handle(action).await
+        }
+    };
+
+    if let Err(err) = result {
+        eprintln!("Error: {err}");
+        std::process::exit(1);
     }
-
-    Ok(())
 }

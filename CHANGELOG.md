@@ -1,6 +1,14 @@
 Changelog
 =========
 
+## 0.8.0
+- Added `-m, --mnemonic [<words>]` to generate standard English BIP-39 recovery phrases with 12, 15, 18, 21, or 24 words.
+- Added JSON output support for mnemonic generation.
+- Reworked large password batch generation to use a bounded worker pool instead of one blocking task per password.
+- Made password JSON output all-or-nothing on worker errors to avoid partial JSON results.
+- Hardened custom symbol handling so multibyte symbol sets work correctly.
+- Updated dependencies, GitHub workflows, and documentation.
+
 ## 0.7.0
 - Using crossbeam channels to improve performance.
 

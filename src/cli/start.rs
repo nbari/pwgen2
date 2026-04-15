@@ -1,11 +1,8 @@
 use crate::cli::{actions::Action, commands, dispatch::handler};
-use anyhow::Result;
 
 /// Start the CLI
-pub fn start() -> Result<Action> {
+#[must_use]
+pub fn start() -> Action {
     let matches = commands::new().get_matches();
-
-    let action = handler(&matches)?;
-
-    Ok(action)
+    handler(&matches)
 }
