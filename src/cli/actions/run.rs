@@ -18,6 +18,8 @@ use std::{
 use tokio::task;
 
 type PasswordResult = Result<(String, Option<String>), Error>;
+type PasswordEntries = Vec<(String, Option<String>)>;
+type CollectedPasswordResults = (PasswordEntries, Option<Error>);
 
 /// Executes the selected generation action and prints its output.
 ///
@@ -60,9 +62,25 @@ async fn handle_passwords(
     json_output: bool,
 ) -> Result<()> {
     let (rx, tasks) = spawn_password_workers(&config, num_pw, hash_mode);
-    let stdout = io::stdout();
-    let mut writer = stdout.lock();
-    process_password_results(rx, tasks, json_output, &mut writer).await
+    let (json_entries, first_error) = {
+        let stdout = io::stdout();
+        let mut writer = stdout.lock();
+        collect_password_results(&rx, json_output, &mut writer)?
+    };
+
+    await_password_tasks(tasks).await?;
+
+    if let Some(err) = first_error {
+        return Err(err);
+    }
+
+    if json_output {
+        let stdout = io::stdout();
+        let mut writer = stdout.lock();
+        write_password_json(&mut writer, &json_entries)?;
+    }
+
+    Ok(())
 }
 
 fn handle_mnemonic_phrase(word_count: usize, json_output: bool) -> Result<()> {
@@ -135,12 +153,11 @@ fn generate_password_entry(
     Ok((password, hashed))
 }
 
-async fn process_password_results(
-    rx: channel::Receiver<PasswordResult>,
-    tasks: Vec<task::JoinHandle<()>>,
+fn collect_password_results(
+    rx: &channel::Receiver<PasswordResult>,
     json_output: bool,
     writer: &mut impl Write,
-) -> Result<()> {
+) -> Result<CollectedPasswordResults> {
     let mut json_entries = Vec::new();
     let mut first_error = None;
 
@@ -161,16 +178,12 @@ async fn process_password_results(
         }
     }
 
+    Ok((json_entries, first_error))
+}
+
+async fn await_password_tasks(tasks: Vec<task::JoinHandle<()>>) -> Result<()> {
     for task in tasks {
         task.await.context("Password generation task failed")?;
-    }
-
-    if let Some(err) = first_error {
-        return Err(err);
-    }
-
-    if json_output {
-        write_password_json(writer, &json_entries)?;
     }
 
     Ok(())
@@ -307,8 +320,8 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn test_process_password_results_json_is_all_or_nothing() {
+    #[test]
+    fn test_collect_password_results_json_is_all_or_nothing() -> Result<()> {
         let (tx, rx) = channel::bounded(2);
         let send_ok = tx.send(Ok((String::from("secret"), None)));
         assert!(send_ok.is_ok());
@@ -317,14 +330,15 @@ mod tests {
         drop(tx);
 
         let mut output = Vec::new();
-        let result = process_password_results(rx, Vec::new(), true, &mut output).await;
-
-        assert!(result.is_err());
+        let (entries, first_error) = collect_password_results(&rx, true, &mut output)?;
+        assert_eq!(entries.len(), 1);
+        assert!(first_error.is_some());
         assert!(output.is_empty());
+        Ok(())
     }
 
-    #[tokio::test]
-    async fn test_process_password_results_plaintext_streams_successes() -> Result<()> {
+    #[test]
+    fn test_collect_password_results_plaintext_streams_successes() -> Result<()> {
         let (tx, rx) = channel::bounded(2);
         tx.send(Ok((String::from("secret"), Some(String::from("hashed")))))
             .map_err(Error::from)?;
@@ -332,9 +346,10 @@ mod tests {
         drop(tx);
 
         let mut output = Vec::new();
-        let result = process_password_results(rx, Vec::new(), false, &mut output).await;
+        let (entries, first_error) = collect_password_results(&rx, false, &mut output)?;
 
-        assert!(result.is_err());
+        assert!(entries.is_empty());
+        assert!(first_error.is_some());
         assert_eq!(String::from_utf8(output)?, "secret hashed\n");
         Ok(())
     }
