@@ -59,9 +59,11 @@ jobs:
       - run: sudo apt -y install musl-dev musl-tools
         if: contains(matrix.target, 'linux')
 
-      - name: Install `cargo-generate-rpm`
+      - name: Install packaging tools (RPM/DEB)
         if: contains(matrix.target, 'linux')
-        run: cargo install cargo-generate-rpm
+        run: |
+          cargo install cargo-generate-rpm
+          cargo install cargo-deb --force --locked
 
       - name: Build
         run: |
@@ -77,6 +79,14 @@ jobs:
           ls -alR target/generate-rpm  # Check where the RPM is generated
           RPM_PATH=$(find target/generate-rpm/ -name "*.rpm" -print -quit)
           echo "RPM_ASSET=$RPM_PATH" >> $GITHUB_ENV
+
+      - name: Generate DEB
+        if: contains(matrix.target, 'linux')
+        run: |
+          cargo deb --no-build --target ${{ matrix.target }}
+          DEB_PATH="$(find target -type f -name '*.deb' -print -quit)"
+          echo "DEB_ASSET=$DEB_PATH" >> $GITHUB_ENV
+          echo "DEB: $DEB_PATH"
 
       - name: Build archive
         shell: bash
@@ -106,6 +116,7 @@ jobs:
           files: |-
             ${{ env.ASSET }}
             ${{ env.RPM_ASSET }}
+            ${{ env.DEB_ASSET }}
 
   publish:
     name: Publish

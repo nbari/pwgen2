@@ -2,7 +2,8 @@ Changelog
 =========
 
 ## 0.8.1
-- Added aarch64 (ARM64) release builds for Linux and macOS, including an aarch64 RPM.
+- Added aarch64 (ARM64) release builds for Linux and macOS.
+- Added Debian (`.deb`) packages to releases, for both x86_64 and aarch64, alongside the existing RPMs.
 - Bumped `pbkdf2` to 0.13 and `sha-crypt` to 0.6, migrating to the rewritten `password-hash` 0.6 API.
 - Updated all package dependencies.
 
