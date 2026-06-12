@@ -25,10 +25,20 @@ jobs:
           - build: linux
             os: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            rpm_arch: x86_64
+
+          - build: linux-arm
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            rpm_arch: aarch64
 
           - build: macos
             os: macos-latest
             target: x86_64-apple-darwin
+
+          - build: macos-arm
+            os: macos-latest
+            target: aarch64-apple-darwin
 
           - build: windows
             os: windows-latest
@@ -47,32 +57,26 @@ jobs:
           targets: ${{ matrix.target }}
 
       - run: sudo apt -y install musl-dev musl-tools
-        if: matrix.build == 'linux'
+        if: contains(matrix.target, 'linux')
 
       - name: Install `cargo-generate-rpm`
-        if: matrix.build == 'linux'
+        if: contains(matrix.target, 'linux')
         run: cargo install cargo-generate-rpm
-
-      - name: Build Linux
-        run: |
-          cargo build --release --locked --target ${{ matrix.target }}
-        if: matrix.build == 'linux'
-
-      - name: Generate RPM
-        if: matrix.build == 'linux'
-        run: |
-          ls -alR target/${{ matrix.target }}/release/pwgen2
-          cp target/${{ matrix.target }}/release/pwgen2 ./target/release/pwgen2
-          strip -s ./target/release/pwgen2
-          cargo generate-rpm
-          ls -alR target/generate-rpm  # Check where the RPM is generated
-          RPM_PATH=$(find target/generate-rpm/ -name "*.rpm" -print -quit)
-          echo "RPM_ASSET=$RPM_PATH" >> $GITHUB_ENV
 
       - name: Build
         run: |
           cargo build --release --locked --target ${{ matrix.target }}
-        if: matrix.build != 'linux'
+
+      - name: Generate RPM
+        if: contains(matrix.target, 'linux')
+        run: |
+          ls -alR target/${{ matrix.target }}/release/pwgen2
+          cp target/${{ matrix.target }}/release/pwgen2 ./target/release/pwgen2
+          strip -s ./target/release/pwgen2
+          cargo generate-rpm --arch ${{ matrix.rpm_arch }}
+          ls -alR target/generate-rpm  # Check where the RPM is generated
+          RPM_PATH=$(find target/generate-rpm/ -name "*.rpm" -print -quit)
+          echo "RPM_ASSET=$RPM_PATH" >> $GITHUB_ENV
 
       - name: Build archive
         shell: bash

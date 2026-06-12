@@ -2,9 +2,10 @@ use anyhow::{Context, Result};
 use bcrypt::{DEFAULT_COST, hash, verify};
 use pbkdf2::{
     Pbkdf2,
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
+    password_hash::{PasswordHasher, PasswordVerifier},
+    phc::PasswordHash,
 };
-use sha_crypt::{Sha512Params, sha512_check, sha512_simple};
+use sha_crypt::ShaCrypt;
 
 /// Hashes a password using bcrypt.
 ///
@@ -30,10 +31,9 @@ pub fn verify_bcrypt(password: &str, hashed: &str) -> Result<bool> {
 ///
 /// Returns an error if PBKDF2 hashing fails.
 pub fn hash_pbkdf2(password: &str) -> Result<String> {
-    let salt = SaltString::generate(&mut OsRng);
-    let password_hash = Pbkdf2
-        .hash_password(password.as_bytes(), &salt)
-        .context("Failed to hash password using PBKDF2")?;
+    let password_hash = Pbkdf2::default()
+        .hash_password(password.as_bytes())
+        .map_err(|err| anyhow::anyhow!("Failed to hash password using PBKDF2: {err}"))?;
 
     Ok(password_hash.to_string())
 }
@@ -44,9 +44,10 @@ pub fn hash_pbkdf2(password: &str) -> Result<String> {
 ///
 /// Returns an error if the hash cannot be parsed or verification fails.
 pub fn verify_pbkdf2(password: &str, hashed: &str) -> Result<bool> {
-    let parsed_hash = PasswordHash::new(hashed).context("Failed to parse PBKDF2 hash")?;
+    let parsed_hash = PasswordHash::new(hashed)
+        .map_err(|err| anyhow::anyhow!("Failed to parse PBKDF2 hash: {err}"))?;
 
-    Ok(Pbkdf2
+    Ok(Pbkdf2::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok())
 }
@@ -57,11 +58,11 @@ pub fn verify_pbkdf2(password: &str, hashed: &str) -> Result<bool> {
 ///
 /// Returns an error if SHA-512 crypt parameter creation or hashing fails.
 pub fn hash_sha512(password: &str) -> Result<String> {
-    let params = Sha512Params::new(sha_crypt::ROUNDS_DEFAULT)
-        .map_err(|err| anyhow::anyhow!("Failed to create SHA-512 params: {err:?}"))?;
+    let password_hash = ShaCrypt::SHA512
+        .hash_password(password.as_bytes())
+        .map_err(|err| anyhow::anyhow!("Failed to hash password using SHA-512 crypt: {err}"))?;
 
-    sha512_simple(password, &params)
-        .map_err(|err| anyhow::anyhow!("Failed to hash password using SHA-512 crypt: {err:?}"))
+    Ok(password_hash.to_string())
 }
 
 /// Verifies a password against a SHA-512 crypt hash.
@@ -70,7 +71,9 @@ pub fn hash_sha512(password: &str) -> Result<String> {
 ///
 /// Returns an error if SHA-512 crypt verification fails.
 pub fn verify_sha512(password: &str, hashed: &str) -> Result<bool> {
-    Ok(sha512_check(password, hashed).is_ok())
+    Ok(ShaCrypt::SHA512
+        .verify_password(password.as_bytes(), hashed)
+        .is_ok())
 }
 
 #[cfg(test)]

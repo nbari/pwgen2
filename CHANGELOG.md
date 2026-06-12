@@ -1,6 +1,11 @@
 Changelog
 =========
 
+## 0.8.1
+- Added aarch64 (ARM64) release builds for Linux and macOS, including an aarch64 RPM.
+- Bumped `pbkdf2` to 0.13 and `sha-crypt` to 0.6, migrating to the rewritten `password-hash` 0.6 API.
+- Updated all package dependencies.
+
 ## 0.8.0
 - Added `-m, --mnemonic [<words>]` to generate standard English BIP-39 recovery phrases with 12, 15, 18, 21, or 24 words.
 - Added JSON output support for mnemonic generation.
